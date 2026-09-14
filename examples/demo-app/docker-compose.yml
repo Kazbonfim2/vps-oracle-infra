@@ -1,0 +1,11 @@
+services:
+  app:
+    image: nginxdemos/hello:plain-text
+    container_name: demo-app
+    restart: unless-stopped
+    networks:
+      - proxy-net
+
+networks:
+  proxy-net:
+    external: true

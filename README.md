@@ -9,8 +9,8 @@ Infraestrutura base para hospedar múltiplas aplicações com **Nginx Proxy Reve
 * [Etapa 1: Preparação da VPS](#-etapa-1-preparação-da-vps)
 * [Etapa 2: Subir a Infraestrutura Base (Nginx)](#-etapa-2-subir-a-infraestrutura-base-nginx)
 * [Etapa 3: Configurar Domínio e HTTPS (Let's Encrypt)](#-etapa-3-configurar-domínio-e-https-lets-encrypt)
-* [Etapa 4: Conectar uma Aplicação de Exemplo](#-etapa-4-conectar-uma-aplicação-de-exemplo) *(Próxima)*
-* [Etapa 5: Guia de Operação Contínua](#-etapa-5-guia-de-operação-contínua) *(Próxima)*
+* [Etapa 4: Conectar uma Aplicação de Exemplo](#-etapa-4-conectar-uma-aplicação-de-exemplo)
+* [Etapa 5: Guia de Operação e Novas Aplicações](#-etapa-5-guia-de-operação-e-novas-aplicações)
 
 ---
 
@@ -82,7 +82,7 @@ curl -i http://localhost
 
 ### 3.1 Apontar o DNS
 No seu gerenciador de domínio (Cloudflare, Registro.br, etc.), crie um registro **Tipo A**:
-* **Nome / Host:** `app1` (ou seu domínio/subdomínio)
+* **Nome / Host:** `app1` (ou seu subdomínio)
 * **Tipo:** `A`
 * **Valor / IP:** `<IP_PUBLICO_DA_SUA_VPS>`
 * **Proxy Cloudflare:** Desativado (DNS Only / Cinza) durante a primeira emissão.
@@ -100,8 +100,6 @@ docker compose run --rm certbot certonly \
   -d app1.meudominio.com
 ```
 
-*(Substitua `seu-email@exemplo.com` e `app1.meudominio.com` pelos seus dados reais)*.
-
 ### 3.3 Ativar o Proxy Reverso com SSL no Nginx
 1. Copie o template para o domínio desejado:
    ```bash
@@ -113,30 +111,79 @@ docker compose run --rm certbot certonly \
    * `ssl_certificate_key /etc/letsencrypt/live/app1.meudominio.com/privkey.pem;`
    * `proxy_pass http://nome-do-container:3000;`
 
-3. Recarregue o Nginx sem reiniciar o container:
+3. Recarregue o Nginx sem derrubar conexões:
    ```bash
    docker compose exec nginx nginx -s reload
    ```
 
 ### 3.4 Configurar Renovação Automática (Cron da VPS)
-Abra o agendador de tarefas do Linux:
+Abra o agendador de tarefas:
 ```bash
 crontab -e
 ```
-Adicione a linha abaixo no final do arquivo (executa todo dia às 03:00 da manhã):
+Adicione no final do arquivo:
 ```cron
 0 3 * * * cd /home/ubuntu/oracle-vps-infra && docker compose run --rm certbot renew --webroot -w /var/www/certbot --quiet && docker compose exec -T nginx nginx -s reload
 ```
 
 ---
 
-## 🔍 Validação da Etapa 3
+## 📦 Etapa 4: Conectar uma Aplicação de Exemplo
 
-1. **Verificar certificado gerado:**
-   ```bash
-   ls -la certbot/conf/live/
+Para testar o fluxo completo de uma aplicação real:
+
+### 4.1 Subir a aplicação de exemplo
+```bash
+# Na pasta da infraestrutura:
+docker compose -f examples/demo-app/docker-compose.yml up -d
+```
+*(O container `demo-app` sobe conectado exclusivamente à rede `proxy-net`)*
+
+### 4.2 Ativar a configuração no Nginx
+```bash
+cp examples/demo-app/demo.meudominio.com.conf nginx/conf.d/demo.meudominio.com.conf
+docker compose exec nginx nginx -s reload
+```
+
+### 4.3 Testar a conexão
+```bash
+# Simulando requisição com o domínio configurado:
+curl -H "Host: demo.meudominio.com" http://localhost
+```
+*Deve retornar a resposta gerada diretamente pelo container `demo-app` através do Nginx.*
+
+---
+
+## ⚡ Etapa 5: Guia de Operação e Novas Aplicações
+
+Para cada nova aplicação (Node, Laravel, Next.js, etc.) que você for adicionar no futuro:
+
+1. **Criar a aplicação** em sua própria pasta (ex: `~/apps/minha-app`):
+   ```yaml
+   # ~/apps/minha-app/docker-compose.yml
+   services:
+     web:
+       build: .
+       container_name: minha-app
+       restart: unless-stopped
+       networks:
+         - proxy-net
+
+   networks:
+     proxy-net:
+       external: true
    ```
-   *(A pasta com o nome do seu domínio deve estar presente)*
-
-2. **Testar HTTPS no navegador:**
-   Acesse `https://app1.meudominio.com` e verifique o cadeado de segurança SSL ativo.
+2. **Subir a aplicação:**
+   ```bash
+   cd ~/apps/minha-app && docker compose up -d
+   ```
+3. **Emitir o certificado SSL (na pasta `~/oracle-vps-infra`):**
+   ```bash
+   docker compose run --rm certbot certonly --webroot -w /var/www/certbot --email seu-email@exemplo.com --agree-tos --no-eff-email -d minhaapp.meudominio.com
+   ```
+4. **Configurar o Nginx:**
+   ```bash
+   cp nginx/conf.d/app.conf.example nginx/conf.d/minhaapp.meudominio.com.conf
+   # Ajuste o server_name, caminhos do SSL e o proxy_pass http://minha-app:<porta>
+   docker compose exec nginx nginx -s reload
+   ```
