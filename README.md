@@ -12,6 +12,7 @@ Infraestrutura base para hospedar múltiplas aplicações com **Nginx Proxy Reve
 * [Etapa 4: Conectar uma Aplicação de Exemplo](#-etapa-4-conectar-uma-aplicação-de-exemplo)
 * [Etapa 5: Guia de Operação e Novas Aplicações](#-etapa-5-guia-de-operação-e-novas-aplicações)
 * [💡 Dica: Usando o IP com `sslip.io` (Sem domínio próprio)](#-dica-usando-o-ip-com-sslipio-sem-domínio-próprio)
+* [🤖 Integração Contínua (CI)](#-integração-contínua-ci)
 
 ---
 
@@ -216,3 +217,11 @@ Se você não comprou um domínio ainda, use o serviço gratuito `sslip.io`:
 
 4. **Acesse no navegador com SSL ativo:**
    `https://portainer.137.131.172.167.sslip.io`
+
+---
+
+## 🤖 Integração Contínua (CI)
+
+O repositório possui uma pipeline automatizada no GitHub Actions (`.github/workflows/ci.yml`) que valida a integridade de qualquer alteração:
+* Valida sintaxe do `docker-compose.yml`.
+* Valida sintaxe dos arquivos de configuração do Nginx (`nginx -t`).

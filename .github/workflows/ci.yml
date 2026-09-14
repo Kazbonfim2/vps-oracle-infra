@@ -1,0 +1,28 @@
+name: CI - Infra & Config Validation
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  validate:
+    name: Validate Docker & Nginx
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Validate Docker Compose
+        run: |
+          docker network create proxy-net
+          docker compose config --quiet
+
+      - name: Validate Nginx configuration syntax
+        run: |
+          docker run --rm \
+            -v ${{ github.workspace }}/nginx/nginx.conf:/etc/nginx/nginx.conf:ro \
+            -v ${{ github.workspace }}/nginx/conf.d/default.conf:/etc/nginx/conf.d/default.conf:ro \
+            nginx:1.27-alpine nginx -t
