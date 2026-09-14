@@ -11,6 +11,7 @@ Infraestrutura base para hospedar múltiplas aplicações com **Nginx Proxy Reve
 * [Etapa 3: Configurar Domínio e HTTPS (Let's Encrypt)](#-etapa-3-configurar-domínio-e-https-lets-encrypt)
 * [Etapa 4: Conectar uma Aplicação de Exemplo](#-etapa-4-conectar-uma-aplicação-de-exemplo)
 * [Etapa 5: Guia de Operação e Novas Aplicações](#-etapa-5-guia-de-operação-e-novas-aplicações)
+* [💡 Dica: Usando o IP com `sslip.io` (Sem domínio próprio)](#-dica-usando-o-ip-com-sslipio-sem-domínio-próprio)
 
 ---
 
@@ -87,6 +88,8 @@ No seu gerenciador de domínio (Cloudflare, Registro.br, etc.), crie um registro
 * **Valor / IP:** `<IP_PUBLICO_DA_SUA_VPS>`
 * **Proxy Cloudflare:** Desativado (DNS Only / Cinza) durante a primeira emissão.
 
+*(Se não tiver domínio, veja a seção [sslip.io](#-dica-usando-o-ip-com-sslipio-sem-domínio-próprio) abaixo).*
+
 ### 3.2 Emitir o Certificado SSL
 Execute na pasta `~/oracle-vps-infra` da VPS:
 
@@ -105,12 +108,7 @@ docker compose run --rm certbot certonly \
    ```bash
    cp nginx/conf.d/app.conf.example nginx/conf.d/app1.meudominio.com.conf
    ```
-2. Edite o arquivo (`nano nginx/conf.d/app1.meudominio.com.conf`) ajustando:
-   * `server_name app1.meudominio.com;`
-   * `ssl_certificate /etc/letsencrypt/live/app1.meudominio.com/fullchain.pem;`
-   * `ssl_certificate_key /etc/letsencrypt/live/app1.meudominio.com/privkey.pem;`
-   * `proxy_pass http://nome-do-container:3000;`
-
+2. Edite o arquivo (`nano nginx/conf.d/app1.meudominio.com.conf`) ajustando `server_name`, caminhos do SSL e `proxy_pass`.
 3. Recarregue o Nginx sem derrubar conexões:
    ```bash
    docker compose exec nginx nginx -s reload
@@ -147,16 +145,14 @@ docker compose exec nginx nginx -s reload
 
 ### 4.3 Testar a conexão
 ```bash
-# Simulando requisição com o domínio configurado:
 curl -H "Host: demo.meudominio.com" http://localhost
 ```
-*Deve retornar a resposta gerada diretamente pelo container `demo-app` através do Nginx.*
 
 ---
 
 ## ⚡ Etapa 5: Guia de Operação e Novas Aplicações
 
-Para cada nova aplicação (Node, Laravel, Next.js, etc.) que você for adicionar no futuro:
+Para cada nova aplicação (Node, Laravel, Next.js, etc.) que você for adicionar:
 
 1. **Criar a aplicação** em sua própria pasta (ex: `~/apps/minha-app`):
    ```yaml
@@ -184,6 +180,39 @@ Para cada nova aplicação (Node, Laravel, Next.js, etc.) que você for adiciona
 4. **Configurar o Nginx:**
    ```bash
    cp nginx/conf.d/app.conf.example nginx/conf.d/minhaapp.meudominio.com.conf
-   # Ajuste o server_name, caminhos do SSL e o proxy_pass http://minha-app:<porta>
    docker compose exec nginx nginx -s reload
    ```
+
+---
+
+## 💡 Dica: Usando o IP com `sslip.io` (Sem domínio próprio)
+
+Se você não comprou um domínio ainda, use o serviço gratuito `sslip.io`:
+* Qualquer subdomínio `*.137.131.172.167.sslip.io` resolve automaticamente para o seu IP.
+
+### Exemplo: Proteger o Portainer com HTTPS agora mesmo
+
+1. **Conecte o container do Portainer à rede `proxy-net`:**
+   ```bash
+   docker network connect proxy-net portainer
+   ```
+
+2. **Emita o certificado SSL real gratuito:**
+   ```bash
+   docker compose run --rm certbot certonly \
+     --webroot \
+     --webroot-path=/var/www/certbot \
+     --email seu-email@exemplo.com \
+     --agree-tos \
+     --no-eff-email \
+     -d portainer.137.131.172.167.sslip.io
+   ```
+
+3. **Ative a configuração do Portainer no Nginx:**
+   ```bash
+   cp nginx/conf.d/portainer.conf.example nginx/conf.d/portainer.137.131.172.167.sslip.io.conf
+   docker compose exec nginx nginx -s reload
+   ```
+
+4. **Acesse no navegador com SSL ativo:**
+   `https://portainer.137.131.172.167.sslip.io`
