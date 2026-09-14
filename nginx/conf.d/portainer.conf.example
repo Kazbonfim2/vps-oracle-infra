@@ -1,11 +1,11 @@
 # Configuracao de Proxy Reverso com HTTPS para o Portainer usando sslip.io
-# Copie para nginx/conf.d/portainer.137.131.172.167.sslip.io.conf
+# Copie para nginx/conf.d/portainer.SEU_IP.sslip.io.conf (ou portainer.meudominio.com.conf)
 
 # 1. Redirecionamento HTTP -> HTTPS
 server {
     listen 80;
     listen [::]:80;
-    server_name portainer.137.131.172.167.sslip.io;
+    server_name portainer.SEU_IP.sslip.io;
 
     # Validacao ACME Let's Encrypt
     location /.well-known/acme-challenge/ {
@@ -22,11 +22,11 @@ server {
     listen 443 ssl;
     listen [::]:443 ssl;
     http2 on;
-    server_name portainer.137.131.172.167.sslip.io;
+    server_name portainer.SEU_IP.sslip.io;
 
     # Certificados Let's Encrypt
-    ssl_certificate /etc/letsencrypt/live/portainer.137.131.172.167.sslip.io/fullchain.pem;
-    ssl_certificate_key /etc/letsencrypt/live/portainer.137.131.172.167.sslip.io/privkey.pem;
+    ssl_certificate /etc/letsencrypt/live/portainer.SEU_IP.sslip.io/fullchain.pem;
+    ssl_certificate_key /etc/letsencrypt/live/portainer.SEU_IP.sslip.io/privkey.pem;
 
     ssl_protocols TLSv1.2 TLSv1.3;
     ssl_prefer_server_ciphers off;
