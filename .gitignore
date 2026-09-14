@@ -1,0 +1,20 @@
+# SSL & Certbot
+certbot/conf/
+certbot/www/
+
+# Environment and secrets
+.env
+*.local
+
+# Logs
+logs/
+*.log
+
+# Local docs
+docs/
+
+# OS & Editor
+.DS_Store
+.vscode/
+.idea/
+
