@@ -17,7 +17,7 @@ services:
   certbot:
     image: certbot/certbot:latest
     container_name: certbot-helper
-    profiles: ["tools"]
+    profiles: [ "tools" ]
     restart: "no"
     volumes:
       - ./certbot/conf:/etc/letsencrypt
@@ -25,6 +25,19 @@ services:
     networks:
       - proxy-net
 
+  portainer:
+    image: portainer/portainer-ce:latest
+    container_name: portainer
+    restart: unless-stopped
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+      - portainer_data:/data
+    networks:
+      - proxy-net
+
 networks:
   proxy-net:
     external: true
+
+volumes:
+  portainer_data:
