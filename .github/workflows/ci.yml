@@ -1,3 +1,4 @@
+
 name: CI - Infra & Config Validation
 
 on:
@@ -22,7 +23,15 @@ jobs:
 
       - name: Validate Nginx configuration syntax
         run: |
+          docker run -d \
+            --name portainer \
+            --network proxy-net \
+            nginx:1.27-alpine
+
           docker run --rm \
+            --network proxy-net \
             -v ${{ github.workspace }}/nginx/nginx.conf:/etc/nginx/nginx.conf:ro \
             -v ${{ github.workspace }}/nginx/conf.d/default.conf:/etc/nginx/conf.d/default.conf:ro \
             nginx:1.27-alpine nginx -t
+
+          docker rm -f portainer
